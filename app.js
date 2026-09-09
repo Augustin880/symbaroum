@@ -29,6 +29,7 @@ function loadState() {
       quote: 'La forêt se souvient de ceux qui savent écouter.', description: 'Un érudit d’Ambria aux manières calmes, fasciné par les ruines et les secrets que Davokar refuse de livrer.', image: '',
       notes: 'Recherche les traces de l’ancienne Symbar. Se méfie des Sorcières mais respecte leur savoir.',
       stats: { 'Discrétion': 10, 'Astuce': 13, 'Persuasion': 9, 'Précision': 14, 'Vigilance': 11, 'Puissance': 8, 'Agilité': 12, 'Volonté': 15 },
+      resources: { endurance: 10, corruption: 0, enduranceMaxBonus: 0, painThresholdBonus: 0, corruptionThresholdBonus: 0, corruptionMaxBonus: 0 },
       inventory: [
         { id: uid(), category: 'equipment', name: 'Nécessaire d’érudit', detail: 'Plumes, encres, parchemins', quantity: 1 },
         { id: uid(), category: 'artifact', name: 'Œil de la crypte', detail: 'Artefact lié · 1 corruption temporaire', quantity: 1 },
@@ -55,6 +56,7 @@ function normalizeState(data) {
   delete data.context;
   delete data.contexts;
   for (const c of data.characters || []) {
+    c.resources = { endurance: Math.max(10, Number(c.stats?.Puissance || 10)), corruption: 0, enduranceMaxBonus: 0, painThresholdBonus: 0, corruptionThresholdBonus: 0, corruptionMaxBonus: 0, ...(c.resources || {}) };
     c.weapons = (c.weapons || []).map(w => { const parsed=splitStoredFormula(w.damage,w.bonus); return ({ description: '', ...w, damage: parsed.formula, bonus: parsed.bonus }); });
     c.armors = (c.armors || []).map(a => { const parsed=splitStoredFormula(a.protection,a.bonus); return ({ ...a, protection: parsed.formula, bonus: parsed.bonus }); });
     c.spells = (c.spells || []).map(s => ({
@@ -113,6 +115,28 @@ function potentialStatChanges() {
   ]);
 }
 
+function resourceValues() {
+  const c=activeCharacter(), r=c.resources;
+  const power=Number(c.stats.Puissance||0), will=Number(c.stats.Volonté||0);
+  return {
+    enduranceMax: Math.max(10,power)+Number(r.enduranceMaxBonus||0),
+    painThreshold: Math.ceil(power/2)+Number(r.painThresholdBonus||0),
+    corruptionThreshold: Math.ceil(will/2)+Number(r.corruptionThresholdBonus||0),
+    corruptionMax: will+Number(r.corruptionMaxBonus||0),
+  };
+}
+
+function resourcesPanel() {
+  const c=activeCharacter(), values=resourceValues(), r=c.resources;
+  const endurancePercent=Math.min(100,Math.max(0,r.endurance/Math.max(1,values.enduranceMax)*100));
+  const corruptionPercent=Math.min(100,Math.max(0,r.corruption/Math.max(1,values.corruptionMax)*100));
+  const corruptionThresholdPercent=Math.min(100,values.corruptionThreshold/Math.max(1,values.corruptionMax)*100);
+  return `<style>.resource-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.vital-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.vital-card{padding:18px;border:1px solid var(--line);border-radius:14px;background:#e3ebe4}.vital-card.corruption{background:#e9e1ed}.gauge-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.gauge-top>span,.gauge-note{color:var(--muted);font-size:10px}.gauge-value{display:flex;align-items:center;gap:4px}.gauge-value input{width:54px;border:0;background:transparent;padding:0;text-align:right;font:600 25px Cinzel;color:var(--forest)}.corruption .gauge-value input{color:#68486f}.gauge-value b{font:600 14px Cinzel;color:var(--muted)}.gauge-track{position:relative;height:18px;border-radius:99px;background:#cad4cc;box-shadow:inset 0 2px 4px #24352c18;overflow:visible}.corruption .gauge-track{background:#d4c9d9}.gauge-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#78917f,#365c49);transition:width .25s}.corruption .gauge-fill{background:linear-gradient(90deg,#a786ac,#724d7c)}.gauge-marker{position:absolute;top:-5px;bottom:-5px;width:2px;background:#8d4160}.gauge-marker::after{content:'seuil';position:absolute;top:25px;left:50%;transform:translateX(-50%);font-size:8px;color:#71435d}.gauge-controls{display:flex;align-items:center;gap:6px;margin-top:18px}.gauge-controls button{width:30px;height:28px;border:1px solid var(--line);border-radius:7px;background:#f6f2e9;cursor:pointer}.gauge-note{margin-left:auto}</style><section class="card card-pad"><div class="resource-heading"><div><p class="eyebrow">ÉTAT DU PERSONNAGE</p><h2 class="section-title">Endurance & corruption</h2></div><button class="button ghost" data-action="edit-resource-limits">Modifier les seuils</button></div><div class="vital-grid">
+    <div class="vital-card endurance"><div class="gauge-top"><span>Endurance</span><div class="gauge-value"><input data-resource="endurance" type="number" min="0" value="${r.endurance}"><b>/ ${values.enduranceMax}</b></div></div><div class="gauge-track"><div class="gauge-fill" style="width:${endurancePercent}%"></div></div><div class="gauge-controls"><button data-resource-delta="endurance" data-delta="-1">−</button><button data-resource-delta="endurance" data-delta="1">+</button><span class="gauge-note">Seuil de douleur : ${values.painThreshold}</span></div></div>
+    <div class="vital-card corruption"><div class="gauge-top"><span>Corruption</span><div class="gauge-value"><input data-resource="corruption" type="number" min="0" value="${r.corruption}"><b>/ ${values.corruptionMax}</b></div></div><div class="gauge-track"><div class="gauge-fill" style="width:${corruptionPercent}%"></div><i class="gauge-marker" style="left:${corruptionThresholdPercent}%"></i></div><div class="gauge-controls"><button data-resource-delta="corruption" data-delta="-1">−</button><button data-resource-delta="corruption" data-delta="1">+</button><span class="gauge-note">Seuil : ${values.corruptionThreshold}</span></div></div>
+  </div></section>`;
+}
+
 function render() {
   const [eyebrow, title] = pageMeta[currentPage];
   $('#page-eyebrow').textContent = eyebrow; $('#page-title').textContent = title;
@@ -159,7 +183,7 @@ function inventoryRow(item){return `<div class="list-row"><div><h4>${esc(item.na
 
 function renderCombat() {
   const c=activeCharacter();
-  return `<div class="grid">
+  return `<div class="grid">${resourcesPanel()}
     <section class="card card-pad"><div style="display:flex;justify-content:space-between;align-items:center"><div><p class="eyebrow">VALEURS ACTUELLES</p><h2 class="section-title">Caractéristiques</h2></div><span class="subtle">Modifiables directement</span></div><div class="stat-grid">${Object.entries(c.stats).map(([n,v])=>statBox(n,v)).join('')}</div><div class="divider"></div><h3>Modifications potentielles</h3><p class="subtle">Elles seront appliquées automatiquement lorsque leur contexte correspond au jet.</p><div class="change-list potential">${potentialStatChanges().map(e=>`<div><span>${esc(e.talent)} · ${esc(e.condition)}</span><strong>${esc(e.text)}</strong></div>`).join('')||'<p class="subtle">Aucune modification potentielle.</p>'}</div></section>
     <div class="grid two"><section class="card"><div class="card-header"><h2>Armes & attaques</h2><span class="spacer"></span><button class="button ghost" data-action="add-combat" data-type="weapon">+ Arme</button></div><div class="list">${c.weapons.map(x=>combatRow(x,'weapon')).join('')||emptyState('Aucune arme','Ajoutez une arme pour enregistrer ses jets.')}</div></section>
     <section class="card"><div class="card-header"><h2>Sorts & pouvoirs</h2><span class="spacer"></span><button class="button ghost" data-action="add-combat" data-type="spell">+ Sort</button></div><div class="list">${c.spells.map(x=>combatRow(x,'spell')).join('')||emptyState('Aucun sort','Ajoutez une capacité mystique.')}</div></section></div>
@@ -221,6 +245,8 @@ function emptyState(title,text){return `<div class="empty"><strong>${title}</str
 
 function bindPageEvents() {
   $$('[data-stat]').forEach(input=>input.addEventListener('change',()=>{activeCharacter().stats[input.dataset.stat]=Math.max(1,Math.min(20,Number(input.value)));save();render()}));
+  $$('[data-resource]').forEach(input=>input.addEventListener('change',()=>{activeCharacter().resources[input.dataset.resource]=Math.max(0,Number(input.value)||0);save();render()}));
+  $$('[data-resource-delta]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.resourceDelta,r=activeCharacter().resources;r[key]=Math.max(0,Number(r[key]||0)+Number(button.dataset.delta));save();render()}));
   $('#portrait-input')?.addEventListener('change', readPortrait);
   $$('[data-action]').forEach(el=>el.addEventListener('click',()=>handleAction(el.dataset.action,el.dataset)));
   $$('[data-money]').forEach(el=>el.addEventListener('click',()=>{const m=activeCharacter().money,k=el.dataset.money;m[k]=Math.max(0,m[k]+Number(el.dataset.delta));save();render()}));
@@ -235,6 +261,7 @@ function bindPageEvents() {
 function handleAction(action,d){
   const c=activeCharacter();
   if(action==='edit-character') return characterModal(); if(action==='edit-notes')return notesModal();
+  if(action==='edit-resource-limits') return resourceLimitsModal();
   if(action==='roll-stat') return statRollModal(d.statName);
   if(action==='add-item')return itemModal(null,d.type); if(action==='edit-item')return itemModal(c.inventory.find(x=>x.id===d.id));
   if(action==='delete-item'){c.inventory=c.inventory.filter(x=>x.id!==d.id);save();render();return}
@@ -255,6 +282,7 @@ function formValues(form){return Object.fromEntries(new FormData(form).entries()
 
 function characterModal(){const c=activeCharacter();openModal(`<h2 id="modal-title">Modifier le personnage</h2><form id="modal-form"><div class="bio-grid">${field('name','Nom',c.name)}${field('xp','XP non dépensée',c.xp,'number')}${field('archetype','Archétype',c.archetype)}${field('race','Race',c.race)}${field('occupation','Occupation',c.occupation)}${field('age','Âge',c.age)}${field('quote','Devise',c.quote,'text','full')}${field('description','Description',c.description,'textarea','full')}</div>${modalButtons()}</form>`);$('#modal-form').onsubmit=e=>{e.preventDefault();Object.assign(c,formValues(e.target));c.xp=Number(c.xp);save();closeModal();render()}}
 function notesModal(){const c=activeCharacter();openModal(`<h2 id="modal-title">Notes & histoire</h2><form id="modal-form">${field('notes','Journal libre',c.notes,'textarea')}${modalButtons()}</form>`);$('#modal-form').onsubmit=e=>{e.preventDefault();c.notes=formValues(e.target).notes;save();closeModal();render()}}
+function resourceLimitsModal(){const r=activeCharacter().resources;openModal(`<h2 id="modal-title">Ajuster les seuils</h2><form id="modal-form"><p class="subtle">Ces bonus s’ajoutent aux valeurs calculées. Ils permettent de gérer les futurs talents sans perdre les formules de base.</p>${field('enduranceMaxBonus','Bonus d’endurance maximale',r.enduranceMaxBonus,'number')}${field('painThresholdBonus','Bonus au seuil de douleur',r.painThresholdBonus,'number')}${field('corruptionThresholdBonus','Bonus au seuil de corruption',r.corruptionThresholdBonus,'number')}${field('corruptionMaxBonus','Bonus de corruption maximale',r.corruptionMaxBonus,'number')}${modalButtons()}</form>`);$('#modal-form').onsubmit=e=>{e.preventDefault();const v=formValues(e.target);for(const key of ['enduranceMaxBonus','painThresholdBonus','corruptionThresholdBonus','corruptionMaxBonus'])r[key]=Number(v[key]||0);save();closeModal();render()}}
 function itemModal(item,type){const editing=!!item;item=item||{category:type,name:'',detail:'',quantity:1};openModal(`<h2 id="modal-title">${editing?'Modifier':'Ajouter'} un objet</h2><form id="modal-form">${field('name','Nom',item.name)}${field('detail','Description',item.detail)}${field('quantity','Quantité',item.quantity,'number')}${modalButtons()}</form>`);$('#modal-form').onsubmit=e=>{e.preventDefault();const v=formValues(e.target);v.quantity=Math.max(1,Number(v.quantity));if(editing)Object.assign(item,v);else activeCharacter().inventory.push({id:uid(),category:type,...v});save();closeModal();render()}}
 function combatModal(item,type){
   const editing=!!item, isArmor=type==='armor', isSpell=type==='spell';

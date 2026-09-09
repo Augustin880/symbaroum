@@ -29,7 +29,7 @@ function loadState() {
       quote: 'La forêt se souvient de ceux qui savent écouter.', description: 'Un érudit d’Ambria aux manières calmes, fasciné par les ruines et les secrets que Davokar refuse de livrer.', image: '',
       notes: 'Recherche les traces de l’ancienne Symbar. Se méfie des Sorcières mais respecte leur savoir.',
       stats: { 'Discrétion': 10, 'Astuce': 13, 'Persuasion': 9, 'Précision': 14, 'Vigilance': 11, 'Puissance': 8, 'Agilité': 12, 'Volonté': 15 },
-      resources: { endurance: 10, corruption: 0, enduranceMaxBonus: 0, painThresholdBonus: 0, corruptionThresholdBonus: 0, corruptionMaxBonus: 0 },
+      resources: { endurance: 10, corruption: 0, permanentCorruption: 0, enduranceMaxBonus: 0, painThresholdBonus: 0, corruptionThresholdBonus: 0, corruptionMaxBonus: 0 },
       inventory: [
         { id: uid(), category: 'equipment', name: 'Nécessaire d’érudit', detail: 'Plumes, encres, parchemins', quantity: 1 },
         { id: uid(), category: 'artifact', name: 'Œil de la crypte', detail: 'Artefact lié · 1 corruption temporaire', quantity: 1 },
@@ -56,7 +56,7 @@ function normalizeState(data) {
   delete data.context;
   delete data.contexts;
   for (const c of data.characters || []) {
-    c.resources = { endurance: Math.max(10, Number(c.stats?.Puissance || 10)), corruption: 0, enduranceMaxBonus: 0, painThresholdBonus: 0, corruptionThresholdBonus: 0, corruptionMaxBonus: 0, ...(c.resources || {}) };
+    c.resources = { endurance: Math.max(10, Number(c.stats?.Puissance || 10)), corruption: 0, permanentCorruption: 0, enduranceMaxBonus: 0, painThresholdBonus: 0, corruptionThresholdBonus: 0, corruptionMaxBonus: 0, ...(c.resources || {}) };
     c.weapons = (c.weapons || []).map(w => { const parsed=splitStoredFormula(w.damage,w.bonus); return ({ description: '', ...w, damage: parsed.formula, bonus: parsed.bonus }); });
     c.armors = (c.armors || []).map(a => { const parsed=splitStoredFormula(a.protection,a.bonus); return ({ ...a, protection: parsed.formula, bonus: parsed.bonus }); });
     c.spells = (c.spells || []).map(s => ({
@@ -129,11 +129,13 @@ function resourceValues() {
 function resourcesPanel() {
   const c=activeCharacter(), values=resourceValues(), r=c.resources;
   const endurancePercent=Math.min(100,Math.max(0,r.endurance/Math.max(1,values.enduranceMax)*100));
-  const corruptionPercent=Math.min(100,Math.max(0,r.corruption/Math.max(1,values.corruptionMax)*100));
+  const corruptionTotal=Number(r.corruption||0)+Number(r.permanentCorruption||0);
+  const temporaryCorruptionPercent=Math.min(100,Math.max(0,r.corruption/Math.max(1,values.corruptionMax)*100));
+  const permanentCorruptionPercent=Math.min(100,Math.max(0,r.permanentCorruption/Math.max(1,values.corruptionMax)*100));
   const corruptionThresholdPercent=Math.min(100,values.corruptionThreshold/Math.max(1,values.corruptionMax)*100);
   return `<style>.resource-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.vital-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.vital-card{padding:18px;border:1px solid var(--line);border-radius:14px;background:#e3ebe4}.vital-card.corruption{background:#e9e1ed}.gauge-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.gauge-top>span,.gauge-note{color:var(--muted);font-size:10px}.gauge-value{display:flex;align-items:center;gap:4px}.gauge-value input{width:54px;border:0;background:transparent;padding:0;text-align:right;font:600 25px Cinzel;color:var(--forest)}.corruption .gauge-value input{color:#68486f}.gauge-value b{font:600 14px Cinzel;color:var(--muted)}.gauge-track{position:relative;height:18px;border-radius:99px;background:#cad4cc;box-shadow:inset 0 2px 4px #24352c18;overflow:visible}.corruption .gauge-track{background:#d4c9d9}.gauge-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#78917f,#365c49);transition:width .25s}.corruption .gauge-fill{background:linear-gradient(90deg,#a786ac,#724d7c)}.gauge-marker{position:absolute;top:-5px;bottom:-5px;width:2px;background:#8d4160}.gauge-marker::after{content:'seuil';position:absolute;top:25px;left:50%;transform:translateX(-50%);font-size:8px;color:#71435d}.gauge-controls{display:flex;align-items:center;gap:6px;margin-top:18px}.gauge-controls button{width:30px;height:28px;border:1px solid var(--line);border-radius:7px;background:#f6f2e9;cursor:pointer}.gauge-note{margin-left:auto}</style><section class="card card-pad"><div class="resource-heading"><div><p class="eyebrow">ÉTAT DU PERSONNAGE</p><h2 class="section-title">Endurance & corruption</h2></div><button class="button ghost" data-action="edit-resource-limits">Modifier les seuils</button></div><div class="vital-grid">
     <div class="vital-card endurance"><div class="gauge-top"><span>Endurance</span><div class="gauge-value"><input data-resource="endurance" type="number" min="0" value="${r.endurance}"><b>/ ${values.enduranceMax}</b></div></div><div class="gauge-track"><div class="gauge-fill" style="width:${endurancePercent}%"></div></div><div class="gauge-controls"><button data-resource-delta="endurance" data-delta="-1">−</button><button data-resource-delta="endurance" data-delta="1">+</button><span class="gauge-note">Seuil de douleur : ${values.painThreshold}</span></div></div>
-    <div class="vital-card corruption"><div class="gauge-top"><span>Corruption</span><div class="gauge-value"><input data-resource="corruption" type="number" min="0" value="${r.corruption}"><b>/ ${values.corruptionMax}</b></div></div><div class="gauge-track"><div class="gauge-fill" style="width:${corruptionPercent}%"></div><i class="gauge-marker" style="left:${corruptionThresholdPercent}%"></i></div><div class="gauge-controls"><button data-resource-delta="corruption" data-delta="-1">−</button><button data-resource-delta="corruption" data-delta="1">+</button><span class="gauge-note">Seuil : ${values.corruptionThreshold}</span></div></div>
+    <div class="vital-card corruption"><div class="gauge-top"><span>Corruption totale</span><div class="gauge-value"><strong>${corruptionTotal}</strong><b>/ ${values.corruptionMax}</b></div></div><div class="gauge-track"><div style="display:flex;height:100%;overflow:hidden;border-radius:99px"><div class="gauge-fill" title="Corruption permanente" style="width:${permanentCorruptionPercent}%;background:#50315a;border-radius:99px 0 0 99px"></div><div class="gauge-fill" title="Corruption temporaire" style="width:${temporaryCorruptionPercent}%"></div></div><i class="gauge-marker" style="left:${corruptionThresholdPercent}%"></i></div><div class="gauge-controls"><span class="gauge-note" style="margin:0;width:70px">Temporaire</span><button data-resource-delta="corruption" data-delta="-1">−</button><input data-resource="corruption" type="number" min="0" value="${r.corruption}" style="width:48px;text-align:center"><button data-resource-delta="corruption" data-delta="1">+</button><span class="gauge-note">Seuil : ${values.corruptionThreshold}</span></div><div class="gauge-controls" style="margin-top:7px"><span class="gauge-note" style="margin:0;width:70px">Permanente</span><button data-resource-delta="permanentCorruption" data-delta="-1">−</button><input data-resource="permanentCorruption" type="number" min="0" value="${r.permanentCorruption}" style="width:48px;text-align:center"><button data-resource-delta="permanentCorruption" data-delta="1">+</button></div></div>
   </div></section>`;
 }
 
@@ -247,6 +249,23 @@ function bindPageEvents() {
   $$('[data-stat]').forEach(input=>input.addEventListener('change',()=>{activeCharacter().stats[input.dataset.stat]=Math.max(1,Math.min(20,Number(input.value)));save();render()}));
   $$('[data-resource]').forEach(input=>input.addEventListener('change',()=>{activeCharacter().resources[input.dataset.resource]=Math.max(0,Number(input.value)||0);save();render()}));
   $$('[data-resource-delta]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.resourceDelta,r=activeCharacter().resources;r[key]=Math.max(0,Number(r[key]||0)+Number(button.dataset.delta));save();render()}));
+  [['endurance','.vital-card.endurance .gauge-track'],['corruption','.vital-card.corruption .gauge-track']].forEach(([resource,selector])=>{
+    const track=$(selector);if(!track)return;track.style.touchAction='none';track.style.cursor='ew-resize';
+    const steps=resource==='endurance'?resourceValues().enduranceMax:resourceValues().corruptionMax,ticks=document.createElement('span');
+    ticks.style.cssText=`position:absolute;inset:0;z-index:3;pointer-events:none;border-radius:99px;background-image:linear-gradient(to right,transparent calc(100% - 1px),rgba(255,255,255,.7) calc(100% - 1px));background-size:${100/Math.max(1,steps)}% 100%`;
+    track.append(ticks);
+    const update=event=>{
+      const rect=track.getBoundingClientRect(),ratio=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),maximum=resource==='endurance'?resourceValues().enduranceMax:resourceValues().corruptionMax,r=activeCharacter().resources,card=track.closest('.vital-card');
+      if(resource==='endurance'){
+        r.endurance=Math.round(ratio*maximum);const snapped=r.endurance/Math.max(1,maximum);card.querySelector('[data-resource="endurance"]').value=r.endurance;track.querySelector('.gauge-fill').style.width=`${snapped*100}%`;
+      }else{
+        const total=Math.max(Number(r.permanentCorruption||0),Math.round(ratio*maximum));r.corruption=total-Number(r.permanentCorruption||0);card.querySelector('[data-resource="corruption"]').value=r.corruption;card.querySelector('.gauge-value strong').textContent=total;track.querySelectorAll('.gauge-fill')[1].style.width=`${r.corruption/Math.max(1,maximum)*100}%`;
+      }
+    };
+    track.addEventListener('pointerdown',event=>{track.setPointerCapture(event.pointerId);update(event)});
+    track.addEventListener('pointermove',event=>{if(track.hasPointerCapture(event.pointerId))update(event)});
+    track.addEventListener('pointerup',event=>{update(event);track.releasePointerCapture(event.pointerId);save();render()});
+  });
   $('#portrait-input')?.addEventListener('change', readPortrait);
   $$('[data-action]').forEach(el=>el.addEventListener('click',()=>handleAction(el.dataset.action,el.dataset)));
   $$('[data-money]').forEach(el=>el.addEventListener('click',()=>{const m=activeCharacter().money,k=el.dataset.money;m[k]=Math.max(0,m[k]+Number(el.dataset.delta));save();render()}));
@@ -334,7 +353,7 @@ function modalButtons(deletable=false){return `<div class="modal-actions">${dele
 
 function recordRoll(data){activeCharacter().rolls.push({id:uid(),timestamp:new Date().toISOString(),...data});save();toast(`${data.formula} →`,`${data.result}${data.outcome?` · ${data.outcome}`:''}`)}
 function performVirtualRoll(formula,source='Jet libre',stat=''){try{const roll=rollFormula(formula);recordRoll({formula:roll.formula,result:roll.total,details:roll.dice.join(' + '),source,stat,mode:'virtuel'});render()}catch(e){toast('Erreur',e.message)}}
-function readPortrait(e){const file=e.target.files[0];if(!file)return;if(file.size>2_000_000)return toast('Image trop lourde','2 Mo maximum');const reader=new FileReader();reader.onload=()=>{activeCharacter().image=reader.result;save();render()};reader.readAsDataURL(file)}
+function readPortrait(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const limit=1600,scale=Math.min(1,limit/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);activeCharacter().image=canvas.toDataURL('image/webp',.88);try{save();render()}catch{toast('Stockage insuffisant','Essayez une image de résolution plus faible')}};img.src=reader.result};reader.readAsDataURL(file)}
 function toast(label,value){const el=document.createElement('div');el.className='toast';el.innerHTML=`${esc(label)} <strong>${esc(value)}</strong>`;$('#toast-region').append(el);setTimeout(()=>el.remove(),3200)}
 
 function characterMenu(){const menu=$('#character-menu');menu.innerHTML=state.characters.map(c=>`<button data-character="${c.id}">${esc(c.name)} <small>· ${esc(c.archetype)}</small></button>`).join('')+'<button id="new-character"><strong>＋ Nouveau personnage</strong></button>';menu.classList.toggle('hidden');$$('[data-character]',menu).forEach(b=>b.onclick=()=>{state.activeCharacterId=b.dataset.character;rollFilters={die:'all',source:'all',stat:'all'};save();menu.classList.add('hidden');render()});$('#new-character').onclick=()=>newCharacterModal()}

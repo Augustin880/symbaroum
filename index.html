@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#18251f">
+  <meta name="description" content="Compagnon de personnage et journal de dés pour Symbaroum.">
+  <title>Le Veilleur — Compagnon Symbaroum</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigation principale">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 4 39 12v12c0 10-6 17-15 21C15 41 9 34 9 24V12Z"/>
+          <path d="M24 11v26M16 19c5 1 8 4 8 9M32 17c-5 2-8 5-8 11"/>
+        </svg>
+        <div><strong>Le Veilleur</strong><span>Chroniques de Davokar</span></div>
+      </div>
+
+      <nav id="main-nav">
+        <button class="nav-item active" data-page="character"><span class="nav-icon">♙</span><span>Personnage</span></button>
+        <button class="nav-item" data-page="inventory"><span class="nav-icon">⌑</span><span>Équipement</span></button>
+        <button class="nav-item" data-page="combat"><span class="nav-icon">⚔</span><span>Stats & combat</span></button>
+        <button class="nav-item" data-page="talents"><span class="nav-icon">✦</span><span>Talents</span></button>
+        <button class="nav-item" data-page="calculator"><span class="nav-icon">⟡</span><span>Calculateur</span></button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="character-switcher" id="character-switcher">
+          <span class="avatar-mini" id="avatar-mini">A</span>
+          <span><strong id="switcher-name">Aldren</strong><small id="switcher-archetype">Mystique · Humain</small></span>
+          <span class="chevron">⌃</span>
+        </button>
+        <div class="character-menu hidden" id="character-menu"></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" aria-label="Ouvrir le menu">☰</button>
+        <div>
+          <p class="eyebrow" id="page-eyebrow">DOSSIER DU PERSONNAGE</p>
+          <h1 id="page-title">Personnage</h1>
+        </div>
+      </header>
+
+      <div class="content" id="page-content"></div>
+    </main>
+  </div>
+
+  <div class="dice-dock">
+    <button class="dice-toggle" id="dice-toggle"><span>◆</span> Lancer un dé</button>
+    <div class="dice-quick hidden" id="dice-quick">
+      <button data-die="4">d4</button><button data-die="6">d6</button><button data-die="8">d8</button>
+      <button data-die="10">d10</button><button data-die="12">d12</button><button data-die="20">d20</button>
+      <button class="physical-roll" id="physical-roll">Saisir un jet physique</button>
+    </div>
+  </div>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <div class="modal-backdrop hidden" id="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="modal-close" id="modal-close" aria-label="Fermer">×</button>
+      <div id="modal-content"></div>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

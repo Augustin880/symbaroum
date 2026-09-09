@@ -1,0 +1,10 @@
+{
+  "name": "Le Veilleur — Compagnon Symbaroum",
+  "short_name": "Le Veilleur",
+  "description": "Fiche de personnage, inventaire, journal de dés et calculateur pour Symbaroum.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eee9dc",
+  "theme_color": "#18251f",
+  "icons": []
+}

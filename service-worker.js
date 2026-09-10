@@ -1,5 +1,5 @@
-const CACHE = 'veilleur-v15';
-const ASSETS = ['./','./index.html','./styles.css','./app.js','./store.js','./probability.js','./manifest.webmanifest'];
+const CACHE = 'veilleur-v29';
+const ASSETS = ['./','./index.html','./styles.css','./theme.css','./gauge-effects.css','./assets/davokar-bg.png','./assets/blood-stains.png','./assets/corruption-roots.png','./app.js','./store.js','./probability.js','./manifest.webmanifest'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
 self.addEventListener('fetch', event => event.respondWith(caches.match(event.request).then(hit => hit || fetch(event.request))));

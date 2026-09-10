@@ -128,15 +128,24 @@ function resourceValues() {
 
 function resourcesPanel() {
   const c=activeCharacter(), values=resourceValues(), r=c.resources;
+  r.endurance=Math.min(values.enduranceMax,Math.max(0,Number(r.endurance)||0));
+  r.permanentCorruption=Math.min(values.corruptionMax,Math.max(0,Number(r.permanentCorruption)||0));
+  r.corruption=Math.min(Math.max(0,values.corruptionMax-r.permanentCorruption),Math.max(0,Number(r.corruption)||0));
   const endurancePercent=Math.min(100,Math.max(0,r.endurance/Math.max(1,values.enduranceMax)*100));
   const corruptionTotal=Number(r.corruption||0)+Number(r.permanentCorruption||0);
   const temporaryCorruptionPercent=Math.min(100,Math.max(0,r.corruption/Math.max(1,values.corruptionMax)*100));
   const permanentCorruptionPercent=Math.min(100,Math.max(0,r.permanentCorruption/Math.max(1,values.corruptionMax)*100));
   const corruptionThresholdPercent=Math.min(100,values.corruptionThreshold/Math.max(1,values.corruptionMax)*100);
   return `<style>.resource-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.vital-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.vital-card{padding:18px;border:1px solid var(--line);border-radius:14px;background:#e3ebe4}.vital-card.corruption{background:#e9e1ed}.gauge-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.gauge-top>span,.gauge-note{color:var(--muted);font-size:10px}.gauge-value{display:flex;align-items:center;gap:4px}.gauge-value input{width:54px;border:0;background:transparent;padding:0;text-align:right;font:600 25px Cinzel;color:var(--forest)}.corruption .gauge-value input{color:#68486f}.gauge-value b{font:600 14px Cinzel;color:var(--muted)}.gauge-track{position:relative;height:18px;border-radius:99px;background:#cad4cc;box-shadow:inset 0 2px 4px #24352c18;overflow:visible}.corruption .gauge-track{background:#d4c9d9}.gauge-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#78917f,#365c49);transition:width .25s}.corruption .gauge-fill{background:linear-gradient(90deg,#a786ac,#724d7c)}.gauge-marker{position:absolute;top:-5px;bottom:-5px;width:2px;background:#8d4160}.gauge-marker::after{content:'seuil';position:absolute;top:25px;left:50%;transform:translateX(-50%);font-size:8px;color:#71435d}.gauge-controls{display:flex;align-items:center;gap:6px;margin-top:18px}.gauge-controls button{width:30px;height:28px;border:1px solid var(--line);border-radius:7px;background:#f6f2e9;cursor:pointer}.gauge-note{margin-left:auto}</style><section class="card card-pad"><div class="resource-heading"><div><p class="eyebrow">ÉTAT DU PERSONNAGE</p><h2 class="section-title">Endurance & corruption</h2></div><button class="button ghost" data-action="edit-resource-limits">Modifier les seuils</button></div><div class="vital-grid">
-    <div class="vital-card endurance"><div class="gauge-top"><span>Endurance</span><div class="gauge-value"><input data-resource="endurance" type="number" min="0" value="${r.endurance}"><b>/ ${values.enduranceMax}</b></div></div><div class="gauge-track"><div class="gauge-fill" style="width:${endurancePercent}%"></div></div><div class="gauge-controls"><button data-resource-delta="endurance" data-delta="-1">−</button><button data-resource-delta="endurance" data-delta="1">+</button><span class="gauge-note">Seuil de douleur : ${values.painThreshold}</span></div></div>
+    <div class="vital-card endurance"><div class="gauge-top"><span>Endurance</span><div class="gauge-value"><input data-resource="endurance" type="number" min="0" max="${values.enduranceMax}" value="${r.endurance}"><b>/ ${values.enduranceMax}</b></div></div><div class="gauge-track"><div class="gauge-fill" style="width:${endurancePercent}%"></div></div><div class="gauge-controls"><button data-resource-delta="endurance" data-delta="-1">−</button><button data-resource-delta="endurance" data-delta="1">+</button><span class="gauge-note">Seuil de douleur : ${values.painThreshold}</span></div></div>
     <div class="vital-card corruption"><div class="gauge-top"><span>Corruption totale</span><div class="gauge-value"><strong>${corruptionTotal}</strong><b>/ ${values.corruptionMax}</b></div></div><div class="gauge-track"><div style="display:flex;height:100%;overflow:hidden;border-radius:99px"><div class="gauge-fill" title="Corruption permanente" style="width:${permanentCorruptionPercent}%;background:#50315a;border-radius:99px 0 0 99px"></div><div class="gauge-fill" title="Corruption temporaire" style="width:${temporaryCorruptionPercent}%"></div></div><i class="gauge-marker" style="left:${corruptionThresholdPercent}%"></i></div><div class="gauge-controls"><span class="gauge-note" style="margin:0;width:70px">Temporaire</span><button data-resource-delta="corruption" data-delta="-1">−</button><input data-resource="corruption" type="number" min="0" value="${r.corruption}" style="width:48px;text-align:center"><button data-resource-delta="corruption" data-delta="1">+</button><span class="gauge-note">Seuil : ${values.corruptionThreshold}</span></div><div class="gauge-controls" style="margin-top:7px"><span class="gauge-note" style="margin:0;width:70px">Permanente</span><button data-resource-delta="permanentCorruption" data-delta="-1">−</button><input data-resource="permanentCorruption" type="number" min="0" value="${r.permanentCorruption}" style="width:48px;text-align:center"><button data-resource-delta="permanentCorruption" data-delta="1">+</button></div></div>
   </div></section>`;
+}
+
+function updateGaugeMood(card,resource,current,maximum){
+  if(!card)return;const ratio=Math.max(0,Math.min(1,current/Math.max(1,maximum)));card.style.setProperty('--level',String(ratio));
+  if(resource==='endurance'){const damage=1-ratio;card.style.setProperty('--damage',String(damage));card.style.setProperty('--blood-hole',`${Math.round((1-damage)*72)}%`);card.classList.remove('healthy','wounded','critical');card.classList.add(ratio<=.25?'critical':ratio<=.5?'wounded':'healthy')}
+  else{const threshold=resourceValues().corruptionThreshold,nodes=Math.min(1,current/Math.max(1,threshold)),spread=current>threshold?Math.min(1,(current-threshold)/Math.max(1,maximum-threshold)):0;card.style.setProperty('--nodes',String(nodes));card.style.setProperty('--spread',String(spread));card.classList.remove('clear','tainted','doomed');card.classList.add(current>=maximum?'doomed':current>threshold?'tainted':'clear')}
 }
 
 function render() {
@@ -206,16 +215,19 @@ function renderTalents() {
 
 function renderCalculator() {
   const c=activeCharacter(); let analysis;
+  if(/^\s*(?:[2-9]|\d{2,})d/i.test(calcState.formula))calcState.formula='1d6';
+  if(/^\s*(?:[2-9]|\d{2,})d/i.test(calcState.failureFormula))calcState.failureFormula='';
   try { analysis=calculateAttack({formula:calcState.formula,failureFormula:calcState.failureFormula,reduction:calcState.enemyProtection,attribute:modifiedStat(calcState.attribute),modifier:calcState.modifier}); } catch { analysis=calculateAttack({formula:'1d10',failureFormula:'',reduction:0,attribute:10,modifier:0}); }
   const scoped=c.rolls; sanitizeRollFilters(scoped); const filtered=dimensionFilteredRolls(scoped), rollStats=calculateRollStats(filtered);
   const filteredDice=uniqueValues(filtered,'die'), theoreticalMean=filteredDice.length===1?theoreticalMeanFor(filteredDice[0]):null;
+  const diceOptions=(current,allowZero=false)=>{const saved=[...c.weapons.map(w=>formulaWithBonus(w.damage,w.bonus)),...c.spells.flatMap(s=>[s.successFormula,s.failureFormula])].filter(value=>value&&!/^\s*\d{2,}d|^\s*[2-9]d/i.test(value)),base=['1d4','1d6','1d8','1d10','1d12','1d20'],choices=[...(allowZero?['']:[]),...base.flatMap(die=>[die,`${die}+1`]),...saved];if(current&&!/^\s*[2-9]\d*d/i.test(current)&&!choices.includes(current))choices.push(current);return [...new Set(choices)].map(value=>`<option value="${esc(value)}" ${value===current?'selected':''}>${esc(value||'0 — aucun dégât')}</option>`).join('')};
   return `<div class="grid">
     <section class="card card-pad"><p class="eyebrow">ATTAQUE CONTRE PROTECTION</p><h2 class="section-title">Calcul exact des chances</h2><div class="calculator-form">
-      <div class="field"><label>Dé de dégâts + bonus</label><input id="calc-formula" value="${esc(calcState.formula)}" placeholder="ex. 1d10+1"></div>
-      <div class="field"><label>Dégâts si le test est raté</label><input id="calc-failureFormula" value="${esc(calcState.failureFormula)}" placeholder="0 par défaut, ex. 1d6"></div>
-      <div class="field"><label>Protection fixe de l’ennemi</label><input id="calc-enemyProtection" type="number" min="0" value="${calcState.enemyProtection}"></div>
+      <div class="field"><label>Dé de dégâts + bonus</label><select id="calc-formula">${diceOptions(calcState.formula)}</select></div>
+      <div class="field"><label>Dégâts si le test est raté</label><select id="calc-failureFormula">${diceOptions(calcState.failureFormula,true)}</select></div>
+      <div class="field"><label>Protection fixe de l’ennemi</label><div class="number-stepper"><input id="calc-enemyProtection" type="number" min="0" value="${calcState.enemyProtection}"><span><button type="button" data-calc-step="enemyProtection" data-delta="1" aria-label="Augmenter la protection">▲</button><button type="button" data-calc-step="enemyProtection" data-delta="-1" aria-label="Diminuer la protection">▼</button></span></div></div>
       <div class="field"><label>Caractéristique</label><select id="calc-stat">${Object.keys(c.stats).map(s=>`<option ${s===calcState.attribute?'selected':''}>${esc(s)}</option>`).join('')}</select></div>
-      <div class="field"><label>Bonus / malus au test (+ / −)</label><input id="calc-modifier" type="number" value="${calcState.modifier}" placeholder="ex. -8"></div></div>
+      <div class="field"><label>Bonus / malus au test (+ / −)</label><div class="number-stepper"><input id="calc-modifier" type="number" value="${calcState.modifier}" placeholder="ex. -8"><span><button type="button" data-calc-step="modifier" data-delta="1" aria-label="Augmenter le bonus">▲</button><button type="button" data-calc-step="modifier" data-delta="-1" aria-label="Augmenter le malus">▼</button></span></div></div></div>
       <div class="calculator-results"><div class="metric featured"><small>Dégâts espérés / tentative</small><strong>${analysis.expectedDamage.toFixed(2)}</strong></div><div class="metric"><small>Moyenne réussite / échec</small><strong>${analysis.successMean.toFixed(2)} / ${analysis.failureMean.toFixed(2)}</strong></div><div class="metric"><small>${esc(calcState.attribute)} de base → testée</small><strong>${modifiedStat(calcState.attribute)} → ${analysis.target}</strong></div><div class="metric"><small>Toucher / zéro dégât total</small><strong>${analysis.chance}% / ${analysis.totalZeroChance.toFixed(1)}%</strong></div></div>
       <div class="chart-title"><div><strong>Distribution par tentative</strong><small>Combine les issues de réussite et d’échec après la protection fixe</small></div><span class="legend-dot"></span><small>Probabilité théorique</small></div>${distributionChart(analysis.distribution,analysis.expectedDamage)}
     </section>
@@ -246,20 +258,24 @@ function rollRow(r){const statLabel=r.requestedStat&&r.requestedStat!==r.stat?`$
 function emptyState(title,text){return `<div class="empty"><strong>${title}</strong>${text}</div>`}
 
 function bindPageEvents() {
+  const gaugeState=resourceValues(),resourceState=activeCharacter().resources,enduranceRatio=resourceState.endurance/Math.max(1,gaugeState.enduranceMax),corruptionTotal=Number(resourceState.corruption||0)+Number(resourceState.permanentCorruption||0);
+  updateGaugeMood($('.vital-card.endurance'),'endurance',resourceState.endurance,gaugeState.enduranceMax);
+  updateGaugeMood($('.vital-card.corruption'),'corruption',corruptionTotal,gaugeState.corruptionMax);
   $$('[data-stat]').forEach(input=>input.addEventListener('change',()=>{activeCharacter().stats[input.dataset.stat]=Math.max(1,Math.min(20,Number(input.value)));save();render()}));
-  $$('[data-resource]').forEach(input=>input.addEventListener('change',()=>{activeCharacter().resources[input.dataset.resource]=Math.max(0,Number(input.value)||0);save();render()}));
-  $$('[data-resource-delta]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.resourceDelta,r=activeCharacter().resources;r[key]=Math.max(0,Number(r[key]||0)+Number(button.dataset.delta));save();render()}));
+  $$('[data-resource]').forEach(input=>input.addEventListener('change',()=>{const r=activeCharacter().resources,key=input.dataset.resource,max=key==='endurance'?resourceValues().enduranceMax:Math.max(0,resourceValues().corruptionMax-Number(r[key==='corruption'?'permanentCorruption':'corruption']||0));r[key]=Math.min(max,Math.max(0,Number(input.value)||0));save();render()}));
+  $$('[data-resource-delta]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.resourceDelta,r=activeCharacter().resources,max=key==='endurance'?resourceValues().enduranceMax:Math.max(0,resourceValues().corruptionMax-Number(r[key==='corruption'?'permanentCorruption':'corruption']||0));r[key]=Math.min(max,Math.max(0,Number(r[key]||0)+Number(button.dataset.delta)));save();render()}));
   [['endurance','.vital-card.endurance .gauge-track'],['corruption','.vital-card.corruption .gauge-track']].forEach(([resource,selector])=>{
     const track=$(selector);if(!track)return;track.style.touchAction='none';track.style.cursor='ew-resize';
     const steps=resource==='endurance'?resourceValues().enduranceMax:resourceValues().corruptionMax,ticks=document.createElement('span');
     ticks.style.cssText=`position:absolute;inset:0;z-index:3;pointer-events:none;border-radius:99px;background-image:linear-gradient(to right,transparent calc(100% - 1px),rgba(255,255,255,.7) calc(100% - 1px));background-size:${100/Math.max(1,steps)}% 100%`;
     track.append(ticks);
+    const percentage=document.createElement('b'),r0=activeCharacter().resources,current0=resource==='endurance'?r0.endurance:Number(r0.corruption||0)+Number(r0.permanentCorruption||0);percentage.className='gauge-percentage';percentage.textContent=`${Math.round(current0/Math.max(1,steps)*100)}%`;track.append(percentage);
     const update=event=>{
       const rect=track.getBoundingClientRect(),ratio=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),maximum=resource==='endurance'?resourceValues().enduranceMax:resourceValues().corruptionMax,r=activeCharacter().resources,card=track.closest('.vital-card');
       if(resource==='endurance'){
-        r.endurance=Math.round(ratio*maximum);const snapped=r.endurance/Math.max(1,maximum);card.querySelector('[data-resource="endurance"]').value=r.endurance;track.querySelector('.gauge-fill').style.width=`${snapped*100}%`;
+        r.endurance=Math.round(ratio*maximum);const snapped=r.endurance/Math.max(1,maximum);card.querySelector('[data-resource="endurance"]').value=r.endurance;track.querySelector('.gauge-fill').style.width=`${snapped*100}%`;track.querySelector('.gauge-percentage').textContent=`${Math.round(snapped*100)}%`;updateGaugeMood(card,'endurance',r.endurance,maximum);
       }else{
-        const total=Math.max(Number(r.permanentCorruption||0),Math.round(ratio*maximum));r.corruption=total-Number(r.permanentCorruption||0);card.querySelector('[data-resource="corruption"]').value=r.corruption;card.querySelector('.gauge-value strong').textContent=total;track.querySelectorAll('.gauge-fill')[1].style.width=`${r.corruption/Math.max(1,maximum)*100}%`;
+        const total=Math.max(Number(r.permanentCorruption||0),Math.round(ratio*maximum));r.corruption=total-Number(r.permanentCorruption||0);card.querySelector('[data-resource="corruption"]').value=r.corruption;card.querySelector('.gauge-value strong').textContent=total;track.querySelectorAll('.gauge-fill')[1].style.width=`${r.corruption/Math.max(1,maximum)*100}%`;track.querySelector('.gauge-percentage').textContent=`${Math.round(total/Math.max(1,maximum)*100)}%`;updateGaugeMood(card,'corruption',total,maximum);
       }
     };
     track.addEventListener('pointerdown',event=>{track.setPointerCapture(event.pointerId);update(event)});
@@ -275,6 +291,7 @@ function bindPageEvents() {
     render();
   }));
   ['formula','failureFormula','enemyProtection','stat','modifier'].forEach(k=> $(`#calc-${k}`)?.addEventListener('change',e=>{calcState[k==='stat'?'attribute':k]=['modifier','enemyProtection'].includes(k)?Number(e.target.value):e.target.value.trim();render()}));
+  $$('[data-calc-step]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.calcStep,next=Number(calcState[key]||0)+Number(button.dataset.delta);calcState[key]=key==='enemyProtection'?Math.max(0,next):next;render()}));
 }
 
 function handleAction(action,d){

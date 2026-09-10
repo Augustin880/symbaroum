@@ -1,0 +1,78 @@
+/* Calques organiques progressifs des ressources — formes fixes, révélation graduelle. */
+.vital-card.endurance::before{
+  content:'';
+  position:absolute;
+  inset:-12%;
+  z-index:0;
+  background:url('./assets/blood-stains.png') center/110% 110% no-repeat;
+  opacity:calc(var(--damage,0) * .91);
+  -webkit-mask-image:radial-gradient(ellipse at center,transparent 0 var(--blood-hole,72%),#000 calc(var(--blood-hole,72%) + 8%));
+  mask-image:radial-gradient(ellipse at center,transparent 0 var(--blood-hole,72%),#000 calc(var(--blood-hole,72%) + 8%));
+  transform:scale(1);
+  transform-origin:center;
+  filter:saturate(calc(.7 + var(--damage,0) * .65)) contrast(calc(.9 + var(--damage,0) * .35));
+  pointer-events:none;
+}
+.vital-card.endurance.healthy::before{filter:hue-rotate(95deg) saturate(calc(.65 + var(--damage,0) * .55)) contrast(calc(.9 + var(--damage,0) * .25))}
+.vital-card.endurance.wounded::before{filter:hue-rotate(38deg) saturate(calc(.75 + var(--damage,0) * .6)) contrast(calc(.9 + var(--damage,0) * .3))}
+.vital-card.endurance.critical::before{filter:saturate(calc(.8 + var(--damage,0) * .65)) contrast(calc(.9 + var(--damage,0) * .35))}
+.vital-card.endurance::after{content:none}
+.vital-card.corruption::before{
+  content:'';
+  position:absolute;
+  inset:-15% -8%;
+  z-index:0;
+  background:url('./assets/corruption-roots.png') center/112% 112% no-repeat;
+  opacity:calc(var(--nodes,0) * .72 + var(--spread,0) * .18);
+  -webkit-mask-image:
+    radial-gradient(circle at 15% 52%,#000 0 calc(var(--nodes,0) * 4% + var(--spread,0) * 46%),transparent calc(var(--nodes,0) * 6% + var(--spread,0) * 46%)),
+    radial-gradient(circle at 55% 52%,#000 0 calc(var(--nodes,0) * 4% + var(--spread,0) * 46%),transparent calc(var(--nodes,0) * 6% + var(--spread,0) * 46%)),
+    radial-gradient(circle at 85% 52%,#000 0 calc(var(--nodes,0) * 4% + var(--spread,0) * 46%),transparent calc(var(--nodes,0) * 6% + var(--spread,0) * 46%));
+  mask-image:
+    radial-gradient(circle at 15% 52%,#000 0 calc(var(--nodes,0) * 4% + var(--spread,0) * 46%),transparent calc(var(--nodes,0) * 6% + var(--spread,0) * 46%)),
+    radial-gradient(circle at 55% 52%,#000 0 calc(var(--nodes,0) * 4% + var(--spread,0) * 46%),transparent calc(var(--nodes,0) * 6% + var(--spread,0) * 46%)),
+    radial-gradient(circle at 85% 52%,#000 0 calc(var(--nodes,0) * 4% + var(--spread,0) * 46%),transparent calc(var(--nodes,0) * 6% + var(--spread,0) * 46%));
+  transform:scale(1);
+  filter:brightness(calc(.82 - var(--level,0) * .43)) contrast(calc(1 + var(--level,0) * .45));
+  pointer-events:none;
+}
+.vital-card.corruption::after{content:none}
+.vital-card.corruption.clear{background:linear-gradient(145deg,#d8d0dc,#bdb0c5)!important}
+.vital-card.corruption.tainted{background:linear-gradient(145deg,#cdb8d0,#a88daa)!important}
+.vital-card.corruption.doomed{background:linear-gradient(145deg,#9a899d,#5e4a60)!important}
+
+/* Les informations restent au-dessus des illustrations et lisibles dans tous les états. */
+.vital-card > *{position:relative;z-index:3}
+.vital-card .gauge-top > span,
+.vital-card .gauge-value,
+.vital-card .gauge-note{
+  color:#251f19!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.85);
+  background:rgba(249,244,229,.82);
+  border:1px solid rgba(78,60,42,.18);
+  border-radius:7px;
+  box-shadow:0 1px 4px rgba(35,25,18,.12);
+}
+.vital-card .gauge-top > span{padding:4px 7px}
+.vital-card .gauge-value{padding:3px 7px}
+.vital-card .gauge-value input,
+.vital-card .gauge-value strong,
+.vital-card .gauge-value b{color:#251f19!important;text-shadow:none}
+.vital-card .gauge-note{padding:3px 6px}
+.vital-card .gauge-controls input{
+  color:#251f19!important;
+  background:rgba(255,251,238,.92)!important;
+  border:1px solid rgba(78,60,42,.35)!important;
+  border-radius:6px;
+  font-weight:700;
+}
+.vital-card .gauge-percentage{
+  z-index:7;
+  color:#251f19!important;
+  text-shadow:none;
+  background:rgba(255,251,238,.94);
+  border:1px solid rgba(78,60,42,.3);
+  border-radius:6px;
+  padding:3px 5px;
+  box-shadow:0 1px 4px rgba(35,25,18,.16);
+}
